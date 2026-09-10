@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="When to leave CT Hub 2 to catch your bus, based on how late buses actually run.">
+<meta name="description" content="Demo of a bus buffer clock for CT Hub 2, Singapore. All data on this page is simulated.">
 <meta name="color-scheme" content="light dark">
-<title>When should I leave? · CT Hub 2</title>
-<link rel="stylesheet" href="/styles.css">
+<title>When should I leave? · CT Hub 2 (demo)</title>
+<link rel="stylesheet" href="styles.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
 </head>
 <body>
@@ -63,10 +63,16 @@
     <a href="https://busrouter.sg" target="_blank" rel="noopener">BusRouter SG</a>.
     Live arrivals from <a href="https://datamall.lta.gov.sg" target="_blank" rel="noopener">LTA DataMall</a>.
   </p>
+  <p>
+    <strong>This is a demo.</strong> Every bus and statistic here is generated in your
+    browser, because GitHub Pages cannot run the collector that makes the real numbers.
+    <a href="https://github.com/PrisLee/busapp" target="_blank" rel="noopener">Source and setup on GitHub</a> &mdash;
+    it takes one command and a free API key to run against real buses.
+  </p>
   <p class="muted" id="status"></p>
 </footer>
 
-<script src="/server-api.js"></script>
-<script src="/app.js"></script>
+<script src="static-api.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

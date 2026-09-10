@@ -1,5 +1,8 @@
 # busapp — a buffer clock for the commute out of CT Hub 2
 
+**[Try the demo →](https://prislee.github.io/busapp/)** (simulated data; see
+[Demo page](#demo-page-on-github-pages))
+
 **One question, answered honestly: what time do I leave the building?**
 
 Not a trip planner. Not a map. Those exist and [BusRouter SG](https://busrouter.sg)
@@ -180,6 +183,27 @@ calling `--once` every minute:
 Polling 3 stops each minute is roughly 4,300 calls a day, comfortably inside DataMall's
 allowance. Raw observations are pruned after 30 days; derived arrivals are kept forever.
 
+## Demo page on GitHub Pages
+
+<https://prislee.github.io/busapp/>
+
+GitHub Pages serves static files only: there is no process to hold an API key, poll
+DataMall, or keep a database. So the published page runs the simulator, the statistics
+and the planner **in the browser** (`pages/static-api.js`, a port of `datamall.py`,
+`stats.py` and `planner.py`) against a trimmed copy of the route data.
+
+The interface is the same file the real app serves. What differs is the truth of the
+numbers: every bus and every "measured" margin on that page is generated in your
+browser, and the page says so in a banner, in its intro text, and in its footer.
+
+```sh
+python3 scripts/build_pages.py     # rebuild docs/ after changing public/ or pages/
+```
+
+Rebuild and commit `docs/` whenever the front end changes; Pages serves that directory
+from `main`. To see real buses you have to run it locally — that is the whole point of
+the collector, and it cannot live on a static host.
+
 ## How it works
 
 ```
@@ -188,7 +212,12 @@ busapp/collector.py       -> data/busapp.sqlite3 polls DataMall, reconstructs ar
 busapp/stats.py                                  headways, waiting time, margins
 busapp/planner.py                                live ETAs + history -> "leave at HH:MM"
 busapp/server.py          -> public/             JSON API and the front end
+scripts/build_pages.py    -> docs/               static demo for GitHub Pages
 ```
+
+The front end reaches its data through a `BusAPI` object, supplied either by
+`public/server-api.js` (which calls the Python API) or `docs/static-api.js` (which
+computes everything locally). That is why one copy of the UI serves both.
 
 ### Reconstructing arrivals
 
