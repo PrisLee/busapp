@@ -50,9 +50,13 @@ Four stops within walking distance (distances measured from the building):
 
 `13` `61` `67` `107` `107M` `133` `141` `145` `175` `961` `961M`
 
-Between them they reach **427 stops with zero transfers** — about 8% of the island's
+Between them they reach **426 stops with zero transfers** — about 8% of the island's
 5,208 stops. That is the honest coverage of v1, and it includes Shenton Way, Toa Payoh,
 Ang Mo Kio, Eunos, Tampines, Clementi, Buona Vista and Woodlands.
+
+We board at whichever of these is the shortest walk for a given direction, which works
+out to **three stops polled**: `07369` and `07379` share a direction, so the nearer one
+wins. Coverage is 426 stops once boarding is pinned to the nearest stop this way.
 
 *(Stops, services and reachability above were derived from BusRouter SG's open route
 data, not estimated.)*
@@ -105,8 +109,111 @@ Thin data across many routes is worse than none, because it invites false confid
 - [BusRouter SG open data](https://data.busrouter.sg) — stops and route topology
 - [busrouter.sg](https://busrouter.sg) — where we hand off for maps and route browsing
 
+## Running it
+
+No dependencies, no build step, no package manager. Python 3.7+ standard library only.
+
+```sh
+python3 serve.py            # fetches route data on first run, then serves on :8080
+```
+
+Open <http://127.0.0.1:8080>. That single command starts the web app *and* the
+collector, so history begins accumulating from the moment you first run it.
+
+Without an API key it runs on a **simulator** and says so on every screen. For live
+buses, get a free key from [LTA DataMall](https://datamall.lta.gov.sg):
+
+```sh
+cp .env.example .env        # paste your key in
+set -a; source .env; set +a
+python3 serve.py
+```
+
+Other entry points:
+
+```sh
+python3 serve.py --port 9000 --no-collector   # UI only, no polling
+python3 -m busapp.collector                   # collector alone (a long-running service)
+python3 -m busapp.collector --once            # single poll, for a cron entry
+python3 scripts/fetch_network.py              # refresh routes after an LTA change
+python3 -m unittest discover -s tests         # 24 tests
+```
+
+To see the finished interface before real history exists, seed simulated arrivals.
+The app then shows a banner saying the history is fake, because a buffer number you
+cannot trust is worse than no number:
+
+```sh
+python3 scripts/seed_demo_history.py --days 21
+python3 scripts/seed_demo_history.py --clear    # remove it before trusting anything
+```
+
+### Where the collector should run
+
+It needs to poll continuously, so a laptop that sleeps will leave holes in the record.
+Either a small always-on host running `python3 -m busapp.collector`, or a cron entry
+calling `--once` every minute:
+
+```
+* * * * * cd /path/to/busapp && DATAMALL_API_KEY=... python3 -m busapp.collector --once --quiet
+```
+
+Polling 3 stops each minute is roughly 4,300 calls a day, comfortably inside DataMall's
+allowance. Raw observations are pruned after 30 days; derived arrivals are kept forever.
+
+## How it works
+
+```
+scripts/fetch_network.py  -> data/network.json   route topology, from BusRouter SG
+busapp/collector.py       -> data/busapp.sqlite3 polls DataMall, reconstructs arrivals
+busapp/stats.py                                  headways, waiting time, margins
+busapp/planner.py                                live ETAs + history -> "leave at HH:MM"
+busapp/server.py          -> public/             JSON API and the front end
+```
+
+### Reconstructing arrivals
+
+DataMall never says when a bus *arrived*, only when it expects to. So the collector
+watches the leading ETA for each service. While a bus approaches, that ETA counts down.
+When it jumps forward by more than two minutes, the bus we were watching is gone, and
+its last observed ETA is our best estimate of when it actually turned up.
+
+For each bus we also keep the **first** ETA we ever saw for it. The difference between
+that and its arrival is the prediction error -- and the 90th percentile of how much
+*earlier* than first advertised a service arrives is exactly the margin you need.
+
+### Why the wait is worse than the timetable says
+
+A passenger arriving at an arbitrary moment is more likely to land in a long gap than a
+short one, so the felt wait exceeds half the average headway. The app uses the
+waiting-time distribution rather than the mean:
+
+    P(wait > w) = sum(max(0, H - w)) / sum(H)
+
+Ten buses an hour, evenly spaced, means a 5-minute typical wait. Ten buses an hour
+arriving in bunches can mean 9 minutes. Same timetable, different morning. That
+difference is the reason this app exists.
+
+## Honest limitations
+
+- **Bunched buses are undercounted.** Two buses nose to tail do not move the leading ETA
+  by the two minutes the detector needs, so the pair often reads as one arrival. This
+  understates bunching -- the very thing the app is meant to expose. Raw observations are
+  kept precisely so a better detector can be run over them later.
+- **Ride time is not measured.** We only watch the boarding stops, so the app says when
+  to leave and which bus to catch, not when you will arrive. It does not pretend to.
+- **Transfers are out of scope.** No history exists for a second leg, so journeys needing
+  a change are declined with a link to BusRouter SG rather than guessed at.
+- **A sleeping collector leaves holes.** Headways spanning a gap in the record are
+  discarded rather than counted as long waits.
+- **The margin is one-sided by design.** It protects against a bus arriving early, not
+  against one running late. Arriving early at the stop costs you a few minutes; missing
+  the bus costs you the whole headway.
+
 ## Status
 
-Brief agreed. Nothing built yet.
+Built and working, on simulated data. 24 tests pass.
 
-Needed to start: a DataMall API key, and a decision on where the collector runs.
+Still open: a DataMall API key for live arrivals, and an always-on home for the
+collector. Until several weeks of real arrivals exist, the app will keep saying it has
+no track record -- which is the intended behaviour, not a bug.

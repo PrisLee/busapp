@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="When to leave CT Hub 2 to catch your bus, based on how late buses actually run.">
+<meta name="color-scheme" content="light dark">
+<title>When should I leave? · CT Hub 2</title>
+<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+</head>
+<body>
+
+<div id="banner" class="banner" hidden></div>
+
+<header class="head">
+  <h1>When should I leave?</h1>
+  <p class="from">
+    Leaving from <strong id="origin-name">CT Hub 2</strong>
+    <span class="muted" id="origin-address"></span>
+  </p>
+</header>
+
+<main>
+  <section class="search" aria-labelledby="search-label">
+    <label class="search-label" id="search-label" for="dest">Where are you going?</label>
+    <div class="combo">
+      <svg class="combo-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+      <input id="dest" type="text" role="combobox" aria-expanded="false" aria-controls="dest-list"
+             aria-autocomplete="list" aria-describedby="search-hint" autocomplete="off"
+             enterkeyhint="search" placeholder="Type a bus stop, road, or landmark">
+      <button id="clear" class="clear" type="button" aria-label="Clear destination" hidden>&times;</button>
+    </div>
+    <p class="hint" id="search-hint">Try &ldquo;Toa Payoh&rdquo;, &ldquo;Clementi&rdquo;, or a 5-digit stop code.</p>
+    <ul id="dest-list" class="listbox" role="listbox" aria-label="Matching bus stops" hidden></ul>
+
+    <div class="chips" id="chips" aria-label="Suggested destinations"></div>
+  </section>
+
+  <section id="result" class="result" aria-live="polite" aria-busy="false"></section>
+
+  <section id="intro" class="intro">
+    <h2>What this does</h2>
+    <p>
+      Every bus app shows you a countdown. None of them tell you whether that
+      countdown can be trusted. This one keeps a record of when buses
+      <em>actually</em> arrive at the stops outside CT Hub 2, then uses it to work out
+      how much slack to leave when you walk out of the building.
+    </p>
+    <ol class="how">
+      <li><strong>Pick where you&rsquo;re going.</strong> <span id="intro-reach"></span></li>
+      <li><strong>Get a leave-by time</strong> &mdash; your walk, plus a margin for how early this bus tends to turn up.</li>
+      <li><strong>See what it costs to miss it</strong>, based on the gaps we&rsquo;ve actually recorded.</li>
+    </ol>
+    <p class="note" id="intro-honesty"></p>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>
+    Maps and full route browsing:
+    <a href="https://busrouter.sg" target="_blank" rel="noopener">BusRouter SG</a>.
+    Live arrivals from <a href="https://datamall.lta.gov.sg" target="_blank" rel="noopener">LTA DataMall</a>.
+  </p>
+  <p class="muted" id="status"></p>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>
