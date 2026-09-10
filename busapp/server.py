@@ -86,6 +86,7 @@ class App:
             "min_for_claim": config.MIN_FOR_CLAIM,
             "planning_quantile": config.PLANNING_QUANTILE,
             "default_margin_min": int(round(config.DEFAULT_MARGIN_S / 60)),
+            "exit_buffer_min": config.EXIT_BUFFER_MIN,
         }
 
     def api_search(self, query: str) -> dict:

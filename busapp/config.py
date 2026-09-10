@@ -43,3 +43,10 @@ PLANNING_QUANTILE = 0.9
 
 # Margin used before any history exists, stated plainly in the UI.
 DEFAULT_MARGIN_S = 120
+
+# --- Getting out of the building -------------------------------------------
+# CT Hub 2 is a tower: the lift wait happens before the walk to the stop even
+# starts. Unlike the margin, this is not measured -- it is a stated assumption,
+# so it is configurable and always shown to the user as its own line.
+EXIT_BUFFER_MIN = int(os.environ.get("BUSAPP_EXIT_BUFFER_MIN", "5"))
+EXIT_BUFFER_S = EXIT_BUFFER_MIN * 60

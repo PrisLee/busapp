@@ -3,11 +3,14 @@
 The recommendation is deliberately conservative in one direction only: we would
 rather send you out a minute early than have the bus beat you to the stop. So
 
-    leave_by = bus ETA - walking time - margin
+    leave_by = bus ETA - lift wait - walking time - margin
 
 where `margin` is the 90th percentile of how much *earlier* than first predicted
 this service has actually shown up. Where there is no history, we use a flat
 default and the UI says so rather than implying we measured it.
+
+The lift wait is a fixed assumption about the building rather than something we
+measure, so it is reported separately and never folded into the margin.
 """
 from __future__ import annotations
 
@@ -64,11 +67,12 @@ def plan_option(conn, option: dict, live: Dict[str, List[dict]], now: float) -> 
     history = stats.summarize(store.arrivals_for(conn, board, service), now=now)
     buses = sorted(live.get(service, []), key=lambda b: b["eta"])
     walk_s = option["walk_min"] * 60
+    exit_s = config.EXIT_BUFFER_S
     margin_s = history["effective_margin_s"]
 
     target = None
     for bus in buses:
-        leave_at = bus["eta"] - walk_s - margin_s
+        leave_at = bus["eta"] - exit_s - walk_s - margin_s
         # A bus you would have to leave for more than a minute ago is not yours.
         if leave_at >= now - 60:
             target = {
@@ -79,6 +83,8 @@ def plan_option(conn, option: dict, live: Dict[str, List[dict]], now: float) -> 
                 "leave_hhmm": stats.sgt_hhmm(leave_at),
                 "leave_in_min": int(round((leave_at - now) / 60.0)),
                 "walk_min": option["walk_min"],
+                "exit_min": config.EXIT_BUFFER_MIN,
+                "exit_s": exit_s,
                 "margin_min": int(round(margin_s / 60.0)),
                 "margin_s": margin_s,
                 "margin_is_default": history["margin_is_default"],

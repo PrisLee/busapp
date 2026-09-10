@@ -8,8 +8,9 @@ the thing no bus app will tell you: *how much slack does this route actually dem
 
 Example of the intended answer:
 
-> **Leave at 8:11.** Service 61 has been 6+ min later than its estimate on
-> 4 of the last 10 weekdays at this hour. A 3-minute buffer is not enough.
+> **Leave your desk at 8:11.** Bus 61 is due at 8:23. That's 5 minutes for the lift,
+> 2 to walk to the stop, and a 5-minute margin because 61 has turned up that much
+> earlier than first predicted in 9 of the last 10 logged mornings.
 
 ## Why this exists
 
@@ -64,9 +65,27 @@ data, not estimated.)*
 ### What the user does
 
 1. Types a destination.
-2. We resolve it to reachable stops among those 427 and pick the candidate services.
+2. We resolve it to reachable stops among those 426 and pick the candidate services.
 3. We return a **leave-by time with a stated confidence**, drawn from logged history
    for that service, at that stop, at that time-of-day and day-of-week.
+
+The leave-by time is when to leave your **desk**, not the building:
+
+    leave_by = bus ETA - lift wait - walk to stop - margin
+
+Every term is shown as its own row in the interface, so the number can be audited
+rather than taken on faith. Three of the four are facts or measurements; the lift wait
+is an assumption, which is why it is labelled and configurable:
+
+| Term | Where it comes from | Default |
+|-----------|---------------------------------------------------|---------|
+| Bus ETA | LTA DataMall, live | — |
+| Lift wait | **Assumption** about the building, not measured | 5 min |
+| Walk | Stop distance at 80 m/min | 1-3 min |
+| Margin | Measured p90 of how early the service runs | 2 min until measured |
+
+Change the lift allowance with `BUSAPP_EXIT_BUFFER_MIN=7`, or set it to `0` if you
+work on the ground floor.
 
 ## Data strategy: live now, history accrues
 
@@ -136,7 +155,7 @@ python3 serve.py --port 9000 --no-collector   # UI only, no polling
 python3 -m busapp.collector                   # collector alone (a long-running service)
 python3 -m busapp.collector --once            # single poll, for a cron entry
 python3 scripts/fetch_network.py              # refresh routes after an LTA change
-python3 -m unittest discover -s tests         # 24 tests
+python3 -m unittest discover -s tests         # 30 tests
 ```
 
 To see the finished interface before real history exists, seed simulated arrivals.
@@ -209,10 +228,14 @@ difference is the reason this app exists.
 - **The margin is one-sided by design.** It protects against a bus arriving early, not
   against one running late. Arriving early at the stop costs you a few minutes; missing
   the bus costs you the whole headway.
+- **The lift wait is assumed, not measured.** Five minutes is a guess about the building,
+  applied uniformly. In reality it varies by floor and time of day, and nothing here
+  observes it. If mornings feel consistently rushed or slack, change
+  `BUSAPP_EXIT_BUFFER_MIN` rather than trusting the default.
 
 ## Status
 
-Built and working, on simulated data. 24 tests pass.
+Built and working, on simulated data. 30 tests pass.
 
 Still open: a DataMall API key for live arrivals, and an always-on home for the
 collector. Until several weeks of real arrivals exist, the app will keep saying it has

@@ -332,7 +332,7 @@
     var t = o.target;
     var leaveIn = minsUntil(t.leave_epoch);
 
-    c.appendChild(el("p", "leave-label", primary ? "Leave the building" : "Leave"));
+    c.appendChild(el("p", "leave-label", primary ? "Leave your desk" : "Leave"));
 
     var time = el("p", "leave-time" + (leaveIn <= 0 ? " now" : ""),
                   leaveIn <= 0 ? "Now" : t.leave_hhmm);
@@ -340,7 +340,7 @@
 
     var inLine = el("p", "leave-in" + (leaveIn <= 2 ? " urgent" : ""),
       leaveIn <= 0
-        ? "You should already be walking — leave at " + t.leave_hhmm
+        ? "You should already be at the lift — leave at " + t.leave_hhmm
         : "in " + plural(leaveIn, "minute", "minutes"));
     c.appendChild(inLine);
 
@@ -354,16 +354,9 @@
     line.appendChild(txt);
     c.appendChild(line);
 
-    // The arithmetic, spelled out. Trust comes from showing the working.
-    var b = el("p", "breakdown");
-    b.innerHTML = "That&rsquo;s <code>" + t.eta_hhmm + "</code> minus your <code>"
-      + o.walk_min + " min</code> walk minus a <code>" + t.margin_min + " min</code> margin"
-      + (t.margin_is_default
-          ? " (a flat default — not enough history at this stop yet)"
-          : " (in " + Math.round(o.history.quantile * 100) + "% of logged arrivals, bus "
-            + o.service + " turned up no more than this much earlier than first predicted)")
-      + ".";
-    c.appendChild(b);
+    // The arithmetic, itemised. Trust comes from showing the working, and the
+    // lift wait is an assumption rather than a measurement, so it gets its own row.
+    c.appendChild(calc(o, t));
 
     // Pills: load, distance, confidence.
     var pills = el("div", "pills");
@@ -407,6 +400,43 @@
         + " are needed before this app will quote a measured margin."));
     }
     return c;
+  }
+
+  function calcRow(label, value, cls) {
+    var li = el("li", cls || null);
+    li.appendChild(el("span", "calc-label", label));
+    li.appendChild(el("span", "calc-val", value));
+    return li;
+  }
+
+  function calc(o, t) {
+    var wrap = el("div", "calc-wrap");
+    var ul = el("ul", "calc");
+    ul.appendChild(calcRow("Bus " + o.service + " due at " + o.board_name, t.eta_hhmm, "calc-start"));
+    if (t.margin_min > 0) {
+      ul.appendChild(calcRow(
+        t.margin_is_default ? "Margin in case it comes early (default)"
+                            : "Margin — how early " + o.service + " actually runs",
+        "− " + plural(t.margin_min, "min", "min")));
+    }
+    ul.appendChild(calcRow("Walk to the stop (" + o.walk_min * 80 + "m)",
+                           "− " + plural(t.walk_min, "min", "min")));
+    if (t.exit_min > 0) {
+      ul.appendChild(calcRow("Lift and out of the building",
+                             "− " + plural(t.exit_min, "min", "min"), "calc-lift"));
+    }
+    ul.appendChild(calcRow("Leave your desk", t.leave_hhmm, "calc-total"));
+    wrap.appendChild(ul);
+
+    var note = el("p", "calc-note");
+    note.innerHTML = t.margin_is_default
+      ? "The margin is a flat " + t.margin_min + "-minute default — there is not enough "
+        + "history at this stop yet to measure it. The lift allowance is a fixed assumption."
+      : "The margin is measured: in " + Math.round(o.history.quantile * 100)
+        + "% of logged arrivals, bus " + o.service + " turned up no more than this much "
+        + "earlier than first predicted. The lift allowance is a fixed assumption.";
+    wrap.appendChild(note);
+    return wrap;
   }
 
   function confClass(h) {
